@@ -21,10 +21,10 @@
           <!-- 點擊點更換頁面 -->
           <div class="dots-container">
             <div 
-              v-for="index in totalSlides" 
+              v-for="(dot, index) in totalSlides" 
               :key="index"
               class="dot"
-              :class="{ active: currentIndex === index }"
+              :class="{ active: currentIndex === index }" 
               @click="goToSlide(index)"
             ></div>
           </div>
@@ -74,14 +74,14 @@ import slide2 from '@/assets/carousel/carousel2.webp'
 import slide3 from '@/assets/carousel/carousel3.webp'
 
 
-// 輪播相關的程式碼
+//輪播相關的程式碼
 const currentIndex = ref(0)
 const totalSlides = 3
 const slidesContainer = ref(null)
 const carouselContainer = ref(null)
 let autoPlayInterval = null
 
-// 新品上市資料（示範用，之後可以從API取得）
+//新品上市資料（示範用，之後可以從API取得）
 const newProducts = ref([
   {
     id: 1,
@@ -119,15 +119,15 @@ const newProducts = ref([
   }
 ])
 
-// 熱銷商品資料
+//熱銷商品資料
 const bestProducts = ref([
   {
     id: 5,
-    name: '葡萄糖胺',
-    description: '關節保養首選，行動更靈活',
+    name: '蔬果酵母B群膜衣錠',
+    description: '營養補給、調節生理機能',
     price: 1480,
     originalPrice: 1880,
-    image: '/src/assets/products/product3.jpeg',
+    image: '/src/assets/products/product5.jpeg',
     badge: 'HOT'
   },
   {
@@ -192,47 +192,58 @@ const stopAutoPlay = () => {
   }
 }
 
+//手機或平板觸控輪播滑動
 let touchStartX = 0
 let touchEndX = 0
 
 const handleTouchStart = (e) => {
-  touchStartX = e.changedTouches[0].screenX
+  touchStartX = e.changedTouches[0].screenX //記錄手指按下位置
 }
 
 const handleTouchEnd = (e) => {
-  touchEndX = e.changedTouches[0].screenX
+  touchEndX = e.changedTouches[0].screenX //記錄手指放開位置
   handleSwipe()
 }
 
 const handleSwipe = () => {
   if (touchEndX < touchStartX - 50) {
-    changeSlide(1)
+    changeSlide(1) //往左滑，下一張
   }
   if (touchEndX > touchStartX + 50) {
-    changeSlide(-1)
+    changeSlide(-1) //往右滑，上一張
   }
 }
 
+//鍵盤控制:使用左右方向鍵切換輪播。
 const handleKeyDown = (e) => {
   if (e.key === 'ArrowLeft') changeSlide(-1)
   if (e.key === 'ArrowRight') changeSlide(1)
 }
 
+//Vue生命週期掛載
 onMounted(() => {
-  startAutoPlay()
+  startAutoPlay() //初始化時啟動自動輪播
+
+  //滑鼠進入/離開時暫停或恢復自動輪播
   if (carouselContainer.value) {
     carouselContainer.value.addEventListener('mouseenter', stopAutoPlay)
     carouselContainer.value.addEventListener('mouseleave', startAutoPlay)
   }
+
+  //觸控事件
   if (slidesContainer.value) {
     slidesContainer.value.addEventListener('touchstart', handleTouchStart)
     slidesContainer.value.addEventListener('touchend', handleTouchEnd)
   }
+
+  //鍵盤事件
   document.addEventListener('keydown', handleKeyDown)
 })
 
 onUnmounted(() => {
-  stopAutoPlay()
+  stopAutoPlay() //卸載時停止計時器
+
+  //移除所有事件監聽，避免 memory leak
   if (carouselContainer.value) {
     carouselContainer.value.removeEventListener('mouseenter', stopAutoPlay)
     carouselContainer.value.removeEventListener('mouseleave', startAutoPlay)
@@ -241,6 +252,8 @@ onUnmounted(() => {
     slidesContainer.value.removeEventListener('touchstart', handleTouchStart)
     slidesContainer.value.removeEventListener('touchend', handleTouchEnd)
   }
+
+  //移除之前綁在document上的鍵盤事件監聽器
   document.removeEventListener('keydown', handleKeyDown)
 })
 </script>

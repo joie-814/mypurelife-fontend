@@ -32,14 +32,18 @@
           <p class="form-subtitle">請輸入您的電子郵件或手機號碼以開始使用。</p>
 
           <div class="form-group">
-            <label for="login-email">電子郵件或手機號碼</label>
+            <label for="login-email">電子郵件</label>
             <input 
-              type="text" 
+              type="email" 
               id="login-email"
               v-model="loginForm.email"
-              placeholder="請輸入電子郵件或手機號碼"
+              placeholder="請輸入電子郵件"
               required
             />
+            <!-- 錯誤訊息 -->
+            <span v-if="loginErrors.email" class="error-message">
+              {{ loginErrors.email }}
+            </span>
           </div>
 
           <div class="form-group">
@@ -50,7 +54,12 @@
               v-model="loginForm.password"
               placeholder="請輸入密碼"
               required
+              minlength="8"
             />
+            <!-- 錯誤訊息 -->
+            <span v-if="loginErrors.password" class="error-message">
+              {{ loginErrors.password }}
+            </span>
           </div>
 
           <button type="submit" class="submit-btn">立即登入</button>
@@ -74,6 +83,9 @@
               placeholder="請輸入您的姓名"
               required
             />
+            <span v-if="registerErrors.name" class="error-message">
+              {{ registerErrors.name }}
+            </span>
           </div>
 
           <div class="form-group">
@@ -85,6 +97,9 @@
               placeholder="請輸入電子郵件"
               required
             />
+            <span v-if="registerErrors.email" class="error-message">
+              {{ registerErrors.email }}
+            </span>
           </div>
 
           <div class="form-group">
@@ -93,9 +108,13 @@
               type="tel" 
               id="register-phone"
               v-model="registerForm.phone"
-              placeholder="請輸入手機號碼"
+              placeholder="請輸入手機號碼 (例如: 0912345678)"
               required
+              pattern="09[0-9]{8}"
             />
+            <span v-if="registerErrors.phone" class="error-message">
+              {{ registerErrors.phone }}
+            </span>
           </div>
 
           <div class="form-group">
@@ -108,6 +127,9 @@
               required
               minlength="8"
             />
+            <span v-if="registerErrors.password" class="error-message">
+              {{ registerErrors.password }}
+            </span>
           </div>
 
           <div class="form-group">
@@ -119,6 +141,9 @@
               placeholder="請再次輸入密碼"
               required
             />
+            <span v-if="registerErrors.passwordConfirm" class="error-message">
+              {{ registerErrors.passwordConfirm }}
+            </span>
           </div>
 
           <div class="checkbox-group">
@@ -131,6 +156,9 @@
             <label for="agree-terms">
               我同意 <a href="#" class="link">服務條款</a> 和 <a href="#" class="link">隱私政策</a>
             </label>
+            <span v-if="registerErrors.agreeTerms" class="error-message">
+              {{ registerErrors.agreeTerms }}
+            </span>
           </div>
 
           <button type="submit" class="submit-btn">立即註冊</button>
@@ -176,6 +204,12 @@ const loginForm = ref({
   password: ''
 })
 
+// 登入錯誤訊息
+const loginErrors = ref({
+  email: '',
+  password: ''
+})
+
 // 註冊表單資料
 const registerForm = ref({
   name: '',
@@ -186,39 +220,148 @@ const registerForm = ref({
   agreeTerms: false
 })
 
+// 註冊錯誤訊息
+const registerErrors = ref({
+  name: '',
+  email: '',
+  phone: '',
+  password: '',
+  passwordConfirm: '',
+  agreeTerms: ''
+})
+
+// 清除錯誤訊息
+const clearErrors = (errorObj) => {
+  // 1.取得 errorObj 裡所有的 key 名稱
+  Object.keys(errorObj.value).forEach(key => {
+    // 2.對每個 key，把對應的值設為空字串
+    errorObj.value[key] = ''
+  })
+}
+
+// 驗證 Email 格式
+const validateEmail = (email) => {
+  // 檢查是否包含 @
+  if (!email.includes('@')) {
+    return '電子郵件格式不正確，必須包含 @'
+  }
+  
+  // 更嚴格的 Email 格式驗證
+  //有 @，且左右兩邊都不能有空格 	/ 點號 . 後面至少有一個字元
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(email)) {
+    return '請輸入有效的電子郵件格式'
+  }
+  
+  return ''
+}
+
+// 驗證密碼長度
+const validatePassword = (password) => {
+  if (password.length < 8) {
+    return '密碼長度至少需要 8 個字元'
+  }
+  return ''
+}
+
+// 驗證手機號碼
+const validatePhone = (phone) => {
+  const phoneRegex = /^09[0-9]{8}$/
+  if (!phoneRegex.test(phone)) {
+    return '請輸入正確的手機號碼格式 (例如: 0912345678)'
+  }
+  return ''
+}
+
 // 處理登入
 const handleLogin = () => {
-  // 這裡之後會串接 API
-  console.log('登入資料:', loginForm.value)
+  // 清除之前的錯誤訊息
+  clearErrors(loginErrors)
   
-  // 簡單驗證
-  if (!loginForm.value.email || !loginForm.value.password) {
-    alert('請填寫所有欄位')
+  let hasError = false
+
+  // 驗證 Email
+  const emailError = validateEmail(loginForm.value.email)
+  if (emailError) {
+    loginErrors.value.email = emailError
+    hasError = true
+  }
+
+  // 驗證密碼
+  const passwordError = validatePassword(loginForm.value.password)
+  if (passwordError) {
+    loginErrors.value.password = passwordError
+    hasError = true
+  }
+
+  // 如果有錯誤就停止
+  if (hasError) {
     return
   }
 
-  // 登入成功後跳轉
+  // 驗證通過，執行登入
+  console.log('登入資料:', loginForm.value)
+  
+  // TODO: 這裡之後會串接 API
   alert('登入成功！')
   router.push('/')
 }
 
 // 處理註冊
 const handleRegister = () => {
-  // 這裡之後會串接 API
-  console.log('註冊資料:', registerForm.value)
+  // 清除之前的錯誤訊息
+  clearErrors(registerErrors)
+  
+  let hasError = false
 
-  // 簡單驗證
+  // 驗證姓名
+  if (!registerForm.value.name.trim()) {
+    registerErrors.value.name = '請輸入姓名'
+    hasError = true
+  }
+
+  // 驗證 Email
+  const emailError = validateEmail(registerForm.value.email)
+  if (emailError) {
+    registerErrors.value.email = emailError
+    hasError = true
+  }
+
+  // 驗證手機號碼
+  const phoneError = validatePhone(registerForm.value.phone)
+  if (phoneError) {
+    registerErrors.value.phone = phoneError
+    hasError = true
+  }
+
+  // 驗證密碼
+  const passwordError = validatePassword(registerForm.value.password)
+  if (passwordError) {
+    registerErrors.value.password = passwordError
+    hasError = true
+  }
+
+  // 驗證密碼確認
   if (registerForm.value.password !== registerForm.value.passwordConfirm) {
-    alert('兩次輸入的密碼不一致')
-    return
+    registerErrors.value.passwordConfirm = '兩次輸入的密碼不一致'
+    hasError = true
   }
 
+  // 驗證同意條款
   if (!registerForm.value.agreeTerms) {
-    alert('請同意服務條款和隱私政策')
+    registerErrors.value.agreeTerms = '請同意服務條款和隱私政策'
+    hasError = true
+  }
+
+  // 如果有錯誤就停止
+  if (hasError) {
     return
   }
 
-  // 註冊成功後跳轉
+  // 驗證通過，執行註冊
+  console.log('註冊資料:', registerForm.value)
+  
+  // TODO: 這裡之後會串接 API
   alert('註冊成功！')
   isLogin.value = true
 }
@@ -440,6 +583,30 @@ const handleRegister = () => {
   justify-content: center;
   font-weight: bold;
   flex-shrink: 0;
+}
+
+/* 錯誤訊息樣式 */
+.error-message {
+  display: block;
+  color: #dc3545;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  animation: shake 0.3s;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+/* 輸入框有錯誤時的樣式 */
+.form-group input:invalid:not(:focus):not(:placeholder-shown) {
+  border-color: #dc3545;
+}
+
+.form-group input:valid:not(:focus):not(:placeholder-shown) {
+  border-color: #28a745;
 }
 
 /* 響應式設計 */
