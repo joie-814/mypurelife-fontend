@@ -375,7 +375,7 @@ onUnmounted(() => {
 }
 
 .section-header h3 {
-  font-size: 28px;
+  font-size: 25px;
   font-weight: bold;
   color: #333;
   margin: 0;

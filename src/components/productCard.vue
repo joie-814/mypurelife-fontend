@@ -1,5 +1,5 @@
 <template>
-  <div class="product-card">
+  <div class="product-card" @click="goToDetail">
     <div class="product-image">
       <img :src="product.image" :alt="product.name">
       <div class="product-badge" v-if="product.badge">{{ product.badge }}</div>
@@ -12,19 +12,47 @@
           <span class="current-price">NT$ {{ product.price }}</span>
           <span class="original-price" v-if="product.originalPrice">NT$ {{ product.originalPrice }}</span>
         </div>
-        <button class="add-to-cart-btn">加入購物車</button>
+        <button class="add-to-cart-btn" @click.stop= "handleAddToCart">
+          <i class="fas fa-shopping-cart"></i>
+          加入購物車</button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-defineProps({
+import { useCartStore } from '@/stores/cartStore.js'
+import { useRouter } from 'vue-router'
+
+const props = defineProps({
   product: {
     type: Object,
     required: true
   }
 })
+
+
+const cartStore = useCartStore()
+const router = useRouter()
+
+// 快速加入購物車（預設 1 件）
+const handleAddToCart = () => {
+  const cartProduct = {
+    productId: props.product.id || props.product.productId,
+    productName: props.product.name,
+    price: props.product.price,
+    imageUrl: props.product.image,
+    stock: props.product.stock || 99
+  }
+  
+  cartStore.addToCart(cartProduct, 1)
+  alert(`✓ 已將「${props.product.name}」加入購物車`)
+}
+
+// 點擊卡片跳轉到商品詳情頁
+const goToDetail = () => {
+  router.push(`/product/${props.product.id || props.product.productId}`)
+}
 </script>
 
 <style scoped>
@@ -135,11 +163,24 @@ defineProps({
   cursor: pointer;
   transition: all 0.3s ease;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .add-to-cart-btn:hover {
-  background: #327a2ea9;
+  background: #2a6626;
   transform: scale(1.05);
+}
+
+/* 按鈕按下效果 */
+.add-to-cart-btn:active {
+  transform: scale(0.98);
+}
+
+/* 購物車圖示樣式 */
+.add-to-cart-btn i {
+  font-size: 14px;
 }
 
 @media (max-width: 768px) {
@@ -157,6 +198,10 @@ defineProps({
 
   .add-to-cart-btn {
     padding: 6px 12px;
+    font-size: 12px;
+  }
+
+    .add-to-cart-btn i {
     font-size: 12px;
   }
 }

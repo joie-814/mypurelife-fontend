@@ -57,10 +57,12 @@
       <div class="header-actions">
         <button class="icon-btn">🔍 搜尋</button>
         <button class="icon-btn" @click="$router.push('/login')">👤 會員中心</button>
-        <button class="icon-btn">
-            🛒 購物車
-            <span class="cart-badge" v-if="cartCount >= 1">{{ cartCount }}</span>
-        </button>
+        <router-link to="/cart" class="icon-btn cart-link">
+          🛒 購物車
+          <span class="cart-badge" v-if="cartStore.totalItems > 0">
+            {{ cartStore.totalItems }}
+          </span>
+        </router-link>
       </div>
     </div>
   </header>
@@ -68,8 +70,8 @@
 
 <script setup>
 import { ref } from 'vue'
-// 購物車數量（之後會從 store 取得）
-const cartCount = ref(0)
+import { useCartStore } from '@/stores/cartStore.js'
+const cartStore = useCartStore()
 const activeDropdown = ref(null) 
 
 
@@ -250,6 +252,29 @@ const activeDropdown = ref(null)
 .dropdown-item:hover {
   background: #f5f5f5;
   color: #327a2ea9;
+}
+
+.cart-link {
+  position: relative;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.cart-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background-color: #e74c3c;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+  line-height: 1.2;
 }
 
 /* 手機版 */
