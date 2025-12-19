@@ -24,7 +24,7 @@ const routes = [
     meta: { title: '購物車 - pureLife' }
   },
   {
-    path: '/product/:id',                       // ✅ 商品詳情路由（分開）
+    path: '/product/:id',                       // 商品詳情路由（分開）
     name: 'productDetail',
     component: ProductDetailView,
     meta: { title: '商品詳情 - pureLife' }

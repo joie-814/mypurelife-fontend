@@ -104,7 +104,7 @@ const goToCheckout = () => {
     return  // 停止執行，不要往下走
   }
   
-  // ✅ 已登入，前往結帳頁
+  // 已登入，前往結帳頁
   router.push('/checkout')
 }
 </script>

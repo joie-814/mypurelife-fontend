@@ -29,15 +29,20 @@
         <!-- 登入表單 -->
         <form v-if="isLogin" @submit.prevent="handleLogin" class="form">
           <h2 class="form-title">登入您的帳戶</h2>
-          <p class="form-subtitle">請輸入您的電子郵件或手機號碼以開始使用。</p>
+          <p class="form-subtitle">請輸入您的電子信箱和密碼以開始使用。</p>
+
+          <!-- API 錯誤訊息顯示區 -->
+          <div v-if="apiError" class="api-error">
+            {{ apiError }}
+          </div>
 
           <div class="form-group">
-            <label for="login-email">電子郵件</label>
+            <label for="login-email">電子信箱</label>
             <input 
               type="email" 
               id="login-email"
               v-model="loginForm.email"
-              placeholder="請輸入電子郵件"
+              placeholder="請輸入電子信箱"
               required
             />
             <!-- 錯誤訊息 -->
@@ -62,7 +67,10 @@
             </span>
           </div>
 
-          <button type="submit" class="submit-btn">立即登入</button>
+          <!-- 加入 disabled 和 loading 狀態 -->
+          <button type="submit" class="submit-btn" :disabled="isLoading">
+             {{ isLoading ? '登入中...' : '立即登入' }}
+          </button>
 
           <div class="form-footer">
             <a href="#" class="link">忘記密碼？</a>
@@ -73,6 +81,11 @@
         <form v-else @submit.prevent="handleRegister" class="form">
           <h2 class="form-title">建立新帳戶</h2>
           <p class="form-subtitle">填寫以下資訊即可開始您的健康之旅！</p>
+
+          <!-- API 錯誤訊息顯示區 -->
+          <div v-if="apiError" class="api-error">
+            {{ apiError }}
+          </div>
 
           <div class="form-group">
             <label for="register-name">姓名</label>
@@ -89,12 +102,12 @@
           </div>
 
           <div class="form-group">
-            <label for="register-email">電子郵件</label>
+            <label for="register-email">電子信箱</label>
             <input 
               type="email" 
               id="register-email"
               v-model="registerForm.email"
-              placeholder="請輸入電子郵件"
+              placeholder="請輸入電子信箱"
               required
             />
             <span v-if="registerErrors.email" class="error-message">
@@ -161,7 +174,9 @@
             </span>
           </div>
 
-          <button type="submit" class="submit-btn">立即註冊</button>
+          <button type="submit" class="submit-btn" :disabled="isLoading">
+            {{ isLoading ? '註冊中...' : '立即註冊' }}
+          </button>
         </form>
       </div>
 
@@ -185,7 +200,7 @@
             <span class="icon">✓</span>
             <span>24小時客戶服務支援</span>
           </div>
-        </div>
+        </div> 
       </div>
     </div>
   </div>
@@ -195,11 +210,14 @@
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore.js' 
+import { loginApi, registerApi } from '@/api/auth.js'
 
 const router = useRouter()
 const route = useRoute() 
 const authStore = useAuthStore()
 const isLogin = ref(true)
+const isLoading = ref(false)
+const apiError = ref('')
 
 // 登入表單資料
 const loginForm = ref({
@@ -240,6 +258,7 @@ const clearErrors = (errorObj) => {
     // 2.對每個 key，把對應的值設為空字串
     errorObj.value[key] = ''
   })
+  apiError.value = ''  // 清除錯誤時也清除apiError
 }
 
 // 驗證 Email 格式
@@ -277,13 +296,13 @@ const validatePhone = (phone) => {
 }
 
 // 處理登入
-const handleLogin = () => {
+const handleLogin = async() => {
   // 清除之前的錯誤訊息
   clearErrors(loginErrors)
   
   let hasError = false
 
-  // 驗證 Email
+  // 驗證帳號
   const emailError = validateEmail(loginForm.value.email)
   if (emailError) {
     loginErrors.value.email = emailError
@@ -302,32 +321,35 @@ const handleLogin = () => {
     return
   }
 
-  // 驗證通過，執行登入
-  console.log('登入資料:', loginForm.value)
+// 呼叫後端 API
+  isLoading.value = true
   
-  // 模擬後端回傳的使用者資料和 token
-  const mockUserData = {
-    member_id: 1,
-    name: '王先生',
-    email: loginForm.value.email,
-    phone: '0912345678',
-    member_level: 'general'
+  try {
+    const response = await loginApi(loginForm.value.email, loginForm.value.password)
+    
+    if (response.success) {
+      // 傳入整個 response.data（LoginResponse）
+      authStore.login(response.data)
+      
+      const redirect = route.query.redirect || '/'
+      router.push(redirect)
+    } else {
+      apiError.value = response.message || '登入失敗'
+    }
+  } catch (error) {
+    console.error('登入錯誤:', error)
+    if (error.response?.data?.message) {
+      apiError.value = error.response.data.message
+    } else {
+      apiError.value = '登入失敗，請稍後再試'
+    }
+  } finally {
+    isLoading.value = false
   }
-  const mockToken = 'mock_jwt_token_' + Date.now()
-  
-  // 儲存登入狀態到 authStore
-  authStore.login(mockUserData, mockToken)
-  
-  // 檢查是否有要返回的頁面（從購物車跳轉過來的）
-  const redirect = route.query.redirect || '/'
-
-  // TODO: 這裡之後會串接 API
-  alert('登入成功！')
-  router.push(redirect)
 }
 
-// 處理註冊
-const handleRegister = () => {
+// 處理註冊（async/await 串接 API）
+const handleRegister = async() => {
   // 清除之前的錯誤訊息
   clearErrors(registerErrors)
   
@@ -377,30 +399,48 @@ const handleRegister = () => {
     return
   }
 
-  // 驗證通過，執行註冊
-  console.log('註冊資料:', registerForm.value)
+  // 呼叫後端 API
+  isLoading.value = true
   
-  // 模擬後端回傳的使用者資料和 token
-  const mockUserData = {
-    member_id: 2,
-    name: registerForm.value.name,
-    email: registerForm.value.email,
-    phone: registerForm.value.phone,
-    member_level: 'general'
+  try {
+    const response = await registerApi({
+      name: registerForm.value.name,
+      email: registerForm.value.email,
+      phone: registerForm.value.phone,
+      password: registerForm.value.password
+    })
+    
+    if (response.success) {
+      // 註冊成功後切換到登入，不自動登入
+      alert('註冊成功！請登入')
+      isLogin.value = true
+
+      // 自動填入電子信箱方便登入
+      loginForm.value.email = registerForm.value.email
+      loginForm.value.password = ''
+      
+      // 清空註冊表單
+      registerForm.value = {
+        name: '',
+        email: '',
+        phone: '',
+        password: '',
+        passwordConfirm: '',
+        agreeTerms: false
+      }
+    } else {
+      apiError.value = response.message || '註冊失敗'
+    }
+  } catch (error) {
+    console.error('註冊錯誤:', error)
+    if (error.response?.data?.message) {
+      apiError.value = error.response.data.message
+    } else {
+      apiError.value = '註冊失敗，請稍後再試'
+    }
+  } finally {
+    isLoading.value = false
   }
-  const mockToken = 'mock_jwt_token_' + Date.now()
-  
-  // 儲存登入狀態到 authStore
-  // 這裡是先把上面的假資料傳進來
-  authStore.login(mockUserData, mockToken)
-  
-  alert('註冊成功！已自動登入')
-  
-  // 檢查是否有要返回的頁面
-  // 讀取網址中的 redirect 參數 
-  // 有參數 → 用參數的值（例如 /cart）沒參數 → 用預設值首頁 /
-  const redirect = route.query.redirect || '/'
-  router.push(redirect)
 }
 </script>
 
@@ -554,13 +594,13 @@ const handleRegister = () => {
   transition: all 0.3s ease;
 }
 
-.submit-btn:hover {
+.submit-btn:hover:not(:disabled) {
   background: #2a6626;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(50, 122, 46, 0.3);
 }
 
-.submit-btn:active {
+.submit-btn:active:not(:disabled)  {
   transform: translateY(0);
 }
 
@@ -644,6 +684,24 @@ const handleRegister = () => {
 
 .form-group input:valid:not(:focus):not(:placeholder-shown) {
   border-color: #28a745;
+}
+
+/* API 錯誤訊息樣式 */
+.api-error {
+  background: #fff2f0;
+  border: 1px solid #ffccc7;
+  color: #dc3545;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+/* 按鈕 disabled 樣式 */
+.submit-btn:disabled {
+  background: #9cb9b0;
+  cursor: not-allowed;
+  transform: none;
 }
 
 /* 響應式設計 */

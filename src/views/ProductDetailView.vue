@@ -80,7 +80,7 @@ const product = ref({
   description: '每日一粒，補充完整營養素。含有豐富的維生素 A、B、C、D、E 以及多種礦物質，幫助維持身體健康機能。',
   price: 899,
   originalPrice: 1200,
-  image: '/images/product1.jpg',
+  image: '/src/assets/products/product1.jpeg',
   stock: 50,
   badge: '熱銷'
 })

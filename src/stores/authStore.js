@@ -41,10 +41,16 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('pureLifeToken')
   }
 
-  // 登入
-  const login = (userData, authToken) => {
-    user.value = userData
-    token.value = authToken
+  // 登入 - 接收後端回傳的 LoginResponse
+  const login = (loginResponse) => {
+    // 從 loginResponse 取出資料
+    user.value = {
+      memberId: loginResponse.memberId,
+      account: loginResponse.account,
+      name: loginResponse.name,
+      memberLevel: loginResponse.memberLevel
+    }
+    token.value = loginResponse.token
     saveAuth()
   }
 
@@ -56,6 +62,16 @@ export const useAuthStore = defineStore('auth', () => {
   // 檢查是否已登入
   const isLoggedIn = computed(() => {
     return user.value !== null && token.value !== null
+  })
+
+  // 取得會員 ID（方便使用）
+  const memberId = computed(() => {
+    return user.value?.memberId || null
+  })
+
+  // 取得會員名稱（方便使用）
+  const memberName = computed(() => {
+    return user.value?.name || ''
   })
 
   // 初始化時載入登入狀態
