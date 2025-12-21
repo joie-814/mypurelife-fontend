@@ -1,16 +1,16 @@
 <template>
   <div class="product-card" @click="goToDetail">
     <div class="product-image">
-      <img :src="product.image" :alt="product.name">
+      <img :src="productImage" :alt="product.productName">
       <div class="product-badge" v-if="product.badge">{{ product.badge }}</div>
     </div>
     <div class="product-info">
-      <h4 class="product-name">{{ product.name }}</h4>
+      <h4 class="product-name">{{ product.productName }}</h4>
       <p class="product-description">{{ product.description }}</p>
       <div class="product-footer">
         <div class="product-price">
-          <span class="current-price">NT$ {{ product.price }}</span>
-          <span class="original-price" v-if="product.originalPrice">NT$ {{ product.originalPrice }}</span>
+          <span class="current-price">NT$ {{ displayPrice.toLocaleString()}}</span>
+          <span class="original-price" v-if="product.promotionPrice">NT$ {{ product.price.toLocaleString() }}</span>
         </div>
         <button class="add-to-cart-btn" @click.stop= "handleAddToCart">
           <i class="fas fa-shopping-cart"></i>
@@ -21,6 +21,7 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { useCartStore } from '@/stores/cartStore.js'
 import { useRouter } from 'vue-router'
 
@@ -35,6 +36,16 @@ const props = defineProps({
 const cartStore = useCartStore()
 const router = useRouter()
 
+// 顯示價格（有促銷價用促銷價，沒有用原價）
+const displayPrice = computed(() => {
+  return props.product.promotionPrice || props.product.price
+})
+
+// 商品圖片
+const productImage = computed(() => {
+  return props.product.imageUrl || '/images/products/default.jpeg'
+})
+
 // 快速加入購物車（預設 1 件）
 const handleAddToCart = () => {
   const cartProduct = {
@@ -46,12 +57,12 @@ const handleAddToCart = () => {
   }
   
   cartStore.addToCart(cartProduct, 1)
-  alert(`✓ 已將「${props.product.name}」加入購物車`)
+  alert(`✓ 已將「${props.product.productName}」加入購物車`)
 }
 
 // 點擊卡片跳轉到商品詳情頁
 const goToDetail = () => {
-  router.push(`/product/${props.product.id || props.product.productId}`)
+  router.push(`/product/${props.product.productId}`)
 }
 </script>
 

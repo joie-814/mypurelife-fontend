@@ -30,43 +30,58 @@
           </div>
         </div>
       </section>
-    
-      <!-- 新品上市區域 -->
-      <section class="products-section">
-        <div class="section-header">
-          <h3>新品上市</h3>
-          <a href="#" class="view-more">查看更多 →</a>
-        </div>
-        <div class="products-grid">
-          <ProductCard 
-            v-for="product in newProducts" 
-            :key="product.id"
-            :product="product"
-          />
-        </div>
-      </section>
 
-      <!-- 熱銷商品區域 -->
-      <section class="products-section">
-        <div class="section-header">
-          <h3>熱銷商品</h3>
-          <a href="#" class="view-more">查看更多 →</a>
-        </div>
-        <div class="products-grid">
-          <ProductCard 
-            v-for="product in bestProducts" 
-            :key="product.id"
-            :product="product"
-          />
-        </div>
-      </section>
+      <!-- Loading 狀態 -->
+      <div v-if="isLoading" class="loading">
+        <p>商品載入中...</p>
+      </div>
+
+      <!-- 錯誤訊息 -->
+      <div v-else-if="errorMessage" class="error">
+        <p>{{ errorMessage }}</p>
+        <button @click="fetchProducts">重新載入</button>
+      </div>
+
+      <!-- 商品區域 -->
+      <template v-else>
+        <!-- 新品上市區域 -->
+        <section class="products-section">
+          <div class="section-header">
+            <h3>新品上市</h3>
+            <a href="#" class="view-more">查看更多 →</a>
+          </div>
+          <div class="products-grid">
+            <ProductCard 
+              v-for="product in newProducts" 
+              :key="product.id"
+              :product="product"
+            />
+          </div>
+        </section>
+
+        <!-- 熱銷商品區域 -->
+        <section class="products-section">
+          <div class="section-header">
+            <h3>熱銷商品</h3>
+            <a href="#" class="view-more">查看更多 →</a>
+          </div>
+          <div class="products-grid">
+            <ProductCard 
+              v-for="product in bestProducts" 
+              :key="product.id"
+              :product="product"
+            />
+          </div>
+        </section>
+      </template>
     </main>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import ProductCard from '@/components/ProductCard.vue'
+import ProductCard from '@/components/productCard.vue'
+import { getNewProductsApi, getHotProductsApi } from '@/api/product.js'
 
 // 引入圖片
 import slide1 from '@/assets/carousel/row1.png'
@@ -81,81 +96,44 @@ const slidesContainer = ref(null)
 const carouselContainer = ref(null)
 let autoPlayInterval = null
 
-//新品上市資料（示範用，之後可以從API取得）
-const newProducts = ref([
-  {
-    id: 1,
-    name: '蔬果綜合維他命緩釋錠',
-    description: '增強體質，補充外食缺乏營養',
-    price: 1280,
-    originalPrice: 1680,
-    image: '/src/assets/products/product1.jpeg', 
-    badge: 'NEW'
-  },
-  {
-    id: 2,
-    name: '益生菌膠囊',
-    description: '300億活菌，腸道健康好幫手',
-    price: 980,
-    image: '/src/assets/products/product2.jpeg',
-    badge: 'NEW'
-  },
-  {
-    id: 3,
-    name: '植物葡萄糖胺膜衣錠',
-    description: '強化靈活移動能力',
-    price: 680,
-    originalPrice: 880,
-    image: '/src/assets/products/product3.jpeg',
-    badge: 'NEW'
-  },
-  {
-    id: 4,
-    name: '益穩雙苦瓜複方膠囊',
-    description: '吃苦當吃補，健康我專屬',
-    price: 1180,
-    image: '/src/assets/products/product4.jpeg',
-    badge: 'NEW'
-  }
-])
+// 商品資料
+const newProducts = ref([])
+const bestProducts = ref([])
+const isLoading = ref(false)
+const errorMessage = ref('')
 
-//熱銷商品資料
-const bestProducts = ref([
-  {
-    id: 5,
-    name: '蔬果酵母B群膜衣錠',
-    description: '營養補給、調節生理機能',
-    price: 1480,
-    originalPrice: 1880,
-    image: '/src/assets/products/product5.jpeg',
-    badge: 'HOT'
-  },
-  {
-    id: 6,
-    name: '葉黃素',
-    description: '保護眼睛，藍光防護不可少',
-    price: 880,
-    image: '/src/assets/products/product6.jpeg',
-    badge: 'HOT'
-  },
-  {
-    id: 7,
-    name: '納豆紅麴素食膠囊',
-    description: '調節生理機能，促進新陳代謝',
-    price: 780,
-    originalPrice: 980,
-    image: '/src/assets/products/product7.jpeg',
-    badge: 'HOT'
-  },
-  {
-    id: 8,
-    name: '海藻鈣',
-    description: '全年齡補充鈣質，維持健康',
-    price: 580,
-    image: '/src/assets/products/product8.jpeg',
-    badge: 'HOT'
+// 從 API 取得商品
+const fetchProducts = async () => {
+  isLoading.value = true
+  errorMessage.value = ''
+  
+  try {
+     // 同時呼叫兩個 API
+    const [newRes, hotRes] = await Promise.all([
+      getNewProductsApi(),
+      getHotProductsApi()
+    ])
+    
+    if (newRes.success) {
+      newProducts.value = newRes.data.map(p => ({
+        ...p,
+        badge: 'NEW'
+      }))
+    }
+    
+    if (hotRes.success) {
+      bestProducts.value = hotRes.data.map(p => ({
+        ...p,
+        badge: 'HOT'
+      }))
+    }
+  } catch (error) {
+    console.error('取得商品失敗:', error)
+    errorMessage.value = '無法連接伺服器，請稍後再試'
+  } finally {
+    isLoading.value = false
   }
-])
+}
 
 // 輪播功能
 const goToSlide = (index) => {
@@ -222,6 +200,7 @@ const handleKeyDown = (e) => {
 
 //Vue生命週期掛載
 onMounted(() => {
+  fetchProducts() // 載入商品
   startAutoPlay() //初始化時啟動自動輪播
 
   //滑鼠進入/離開時暫停或恢復自動輪播
@@ -263,6 +242,28 @@ onUnmounted(() => {
   padding: 2rem;
   max-width: 1400px;
   margin: 0 auto;
+}
+
+/* Loading 和 Error 樣式 */
+.loading,
+.error {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+}
+
+.error button {
+  margin-top: 16px;
+  padding: 10px 24px;
+  background: #3A6B5C;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.error button:hover {
+  background: #2d5447;
 }
 
 /* 輪播樣式 */

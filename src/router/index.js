@@ -82,24 +82,23 @@ router.beforeEach((to, from, next) => {
   if (to.meta.title) {
     document.title = to.meta.title
   }
-  
-  // 檢查是否需要登入
-  if (to.meta.requiresAuth) {
-    // 如果未登入
-    if (!authStore.isLoggedIn) {
-      // 跳轉到登入頁，並記住原本要去的頁面
-      next({
-        path: '/login',
-        query: { redirect: to.fullPath }  // 記住完整路徑（包含參數）
-      })
-    } else {
-      // 已登入，允許通過
-      next()
-    }
-  } else {
-    // 不需要登入的頁面，直接通過
-    next()
+
+  // 已登入但要去登入頁 → 導回首頁
+  if (to.path === '/login' && authStore.isLoggedIn) {
+    next({ path: '/' })
+    return
   }
+
+  // 需要登入但未登入 → 導去登入頁
+  if (to.meta.requiresAuth && !authStore.isLoggedIn) {
+    next({
+      path: '/login',
+      query: { redirect: to.fullPath }
+    })
+    return
+  }
+  
+  next()
 })
 
 export default router

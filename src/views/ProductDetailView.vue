@@ -2,23 +2,35 @@
 
 <template>
   <div class="product-detail-container">
-    <div class="product-detail">
+    <!-- Loading 狀態 -->
+    <div v-if="isLoading" class="loading">
+      <p>商品載入中...</p>
+    </div>
+
+    <!-- 錯誤訊息 -->
+    <div v-else-if="errorMessage" class="error">
+      <p>{{ errorMessage }}</p>
+      <button @click="goBack">返回商品列表</button>
+    </div>
+
+    <!-- 商品詳情 -->
+    <div v-else class="product-detail">
       <!-- 商品圖片 -->
       <div class="detail-image">
-        <img :src="product.image" :alt="product.name">
-        <div class="product-badge" v-if="product.badge">{{ product.badge }}</div>
+        <img :src="productImage" :alt="product.productName">
+        <div class="product-badge" v-if="product.promotionPrice">特價</div>
       </div>
       
       <!-- 商品資訊 -->
       <div class="detail-info">
-        <h1>{{ product.name }}</h1>
+        <h1>{{ product.productName }}</h1>
         <p class="detail-description">{{ product.description }}</p>
         
         <!-- 價格區塊 -->
         <div class="price-section">
-          <span class="current-price">NT$ {{ product.price.toLocaleString() }}</span>
+          <span class="current-price">NT$ {{ displayPrice.toLocaleString() }}</span>
           <span class="original-price" v-if="product.originalPrice">
-            NT$ {{ product.originalPrice.toLocaleString() }}
+            NT$ {{ product.price.toLocaleString() }}
           </span>
         </div>
         
@@ -40,7 +52,7 @@
               <i class="fas fa-plus"></i>
             </button>
           </div>
-          <span class="stock-info">庫存：{{ product.stock || 99 }} 件</span>
+          <span class="stock-info">庫存：{{ product.stockQuantity || 0 }} 件</span>
         </div>
         
         <!-- 操作按鈕 -->
@@ -65,34 +77,56 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useCartStore } from '@/stores/cartStore.js'
+import { getProductByIdApi } from '@/api/product.js'
 
 const router = useRouter()
 const route = useRoute()
 const cartStore = useCartStore()
 
-// 商品資料（實際應該從 API 獲取）
-const product = ref({
-  id: route.params.id,
-  name: '綜合維他命',
-  description: '每日一粒，補充完整營養素。含有豐富的維生素 A、B、C、D、E 以及多種礦物質，幫助維持身體健康機能。',
-  price: 899,
-  originalPrice: 1200,
-  image: '/src/assets/products/product1.jpeg',
-  stock: 50,
-  badge: '熱銷'
+// 狀態
+const product = ref({})
+const quantity = ref(1)
+const isLoading = ref(false)
+const errorMessage = ref('')
+
+// 顯示價格（有促銷價用促銷價，沒有用原價）
+const displayPrice = computed(() => {
+  return product.value.promotionPrice || product.value.price || 0
 })
 
-const quantity = ref(1)
+// 商品圖片
+const productImage = computed(() => {
+  return product.value.imageUrl || '/images/products/default.jpeg'
+})
 
-// 🔍 TODO: 實際應該在這裡從後端 API 獲取商品資料
+// 從 API 取得商品詳情
+const fetchProduct = async () => {
+  isLoading.value = true
+  errorMessage.value = ''
+  
+  try {
+    const productId = route.params.id
+    const response = await getProductByIdApi(productId)
+    
+    if (response.success) {
+      product.value = response.data
+    } else {
+      errorMessage.value = response.message || '載入商品失敗'
+    }
+  } catch (error) {
+    console.error('取得商品失敗:', error)
+    errorMessage.value = '找不到此商品'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// 生命週期
 onMounted(() => {
-  // 範例：
-  // fetchProductDetail(route.params.id).then(data => {
-  //   product.value = data
-  // })
+  fetchProduct()
 })
 
 // 減少數量
@@ -104,7 +138,7 @@ const decreaseQuantity = () => {
 
 // 增加數量
 const increaseQuantity = () => {
-  if (quantity.value < (product.value.stock || 99)) {
+  if (quantity.value < (product.value.stockQuantity || 99)) {
     quantity.value++
   }
 }
@@ -112,12 +146,13 @@ const increaseQuantity = () => {
 // 驗證數量輸入
 const validateQuantityInput = (event) => {
   let value = parseInt(event.target.value)
+  const maxStock = product.value.stockQuantity || 99
   
   if (isNaN(value) || value < 1) {
     quantity.value = 1
-  } else if (value > (product.value.stock || 99)) {
-    quantity.value = product.value.stock || 99
-    alert(`庫存僅剩 ${product.value.stock || 99} 件`)
+  } else if (value > maxStock) {
+    quantity.value = maxStock
+    alert(`庫存僅剩 ${maxStock || 99} 件`)
   } else {
     quantity.value = value
   }
@@ -126,15 +161,15 @@ const validateQuantityInput = (event) => {
 // 加入購物車
 const addToCart = () => {
   const cartProduct = {
-    productId: product.value.id,
-    productName: product.value.name,
-    price: product.value.price,
-    imageUrl: product.value.image,
-    stock: product.value.stock || 99
+    productId: product.value.productId,
+    productName: product.value.productName,
+    price: displayPrice.value,
+    imageUrl: productImage.value,
+    stock: product.value.stockQuantity || 99
   }
   
   cartStore.addToCart(cartProduct, quantity.value)
-  alert(`✓ 已將 ${quantity.value} 件「${product.value.name}」加入購物車`)
+  alert(`✓ 已將 ${quantity.value} 件「${product.value.productName}」加入購物車`)
   quantity.value = 1
 }
 
@@ -155,6 +190,28 @@ const goBack = () => {
   max-width: 1200px;
   margin: 0 auto;
   padding: 40px 20px;
+}
+
+/* Loading 和 Error 樣式 */
+.loading,
+.error {
+  text-align: center;
+  padding: 100px 20px;
+  color: #666;
+}
+
+.error button {
+  margin-top: 16px;
+  padding: 10px 24px;
+  background: #3A6B5C;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.error button:hover {
+  background: #2d5447;
 }
 
 .product-detail {
