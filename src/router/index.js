@@ -68,14 +68,26 @@ const routes = [
     }
   },
   {
-    path: '/subscription',
-    name: 'Subscription',
-    component: () => import('../views/SubscriptionView.vue'),
+    path: '/subscriptions',
+    name: 'Subscriptions',
+    component: () => import('../views/SubscriptionListView.vue'),
     meta: { 
       title: '我的定期購 - pureLife',
       requiresAuth: true  // 標記需要登入
     }
-  }
+  },
+  {
+  path: '/subscription-checkout',
+  name: 'SubscriptionCheckout',
+  component: () => import('@/views/SubscriptionCheckoutView.vue'),
+  meta: { requiresAuth: true }
+  },
+  {
+  path: '/subscription-complete',
+  name: 'SubscriptionComplete',
+  component: () => import('@/views/SubscriptionCompleteView.vue'),
+  meta: { requiresAuth: true }
+}
 ]
 
 const router = createRouter({

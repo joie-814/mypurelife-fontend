@@ -76,7 +76,7 @@
           <div class="dropdown user-dropdown" v-show="showUserMenu">
             <router-link to="/member" class="dropdown-item">會員中心</router-link>
             <router-link to="/orders" class="dropdown-item">訂單查詢</router-link>
-            <router-link to="/subscription" class="dropdown-item">我的定期購</router-link>
+            <router-link to="/subscriptions" class="dropdown-item">我的定期購</router-link>
             <!-- 分隔線 -->
             <div class="dropdown-divider"></div>
             <a href="#" class="dropdown-item" @click.prevent="handleLogout">登出</a>

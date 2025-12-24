@@ -179,7 +179,7 @@ const goToCheckout = () => {
 }
 
 .cart-header h1 {
-  font-size: 23px;
+  font-size: 25px;
   color: #2c3e50;
 }
 

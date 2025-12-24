@@ -159,7 +159,7 @@ const getPaymentMethodText = (method) => {
 }
 
 .page-title {
-  font-size: 28px;
+  font-size: 25px;
   color: #2c3e50;
   margin-bottom: 30px;
   padding-bottom: 15px;

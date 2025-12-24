@@ -1,6 +1,6 @@
 <template>
   <div class="checkout-container">
-    <h1 class="page-title">結帳</h1>
+    <h1 class="page-title">訂閱結帳</h1>
 
     <!-- 載入中 -->
     <div v-if="isLoading" class="loading">
@@ -8,11 +8,10 @@
       <p>載入中...</p>
     </div>
 
-    <!-- 購物車為空 -->
-    <div v-else-if="cartStore.cartItems.length === 0" class="empty-cart">
-      <i class="fas fa-shopping-cart"></i>
-      <p>購物車是空的</p>
-      <router-link to="/" class="btn-continue">繼續購物</router-link>
+    <!-- 找不到方案 -->
+    <div v-else-if="!plan" class="error">
+      <p>找不到訂閱方案</p>
+      <router-link to="/" class="btn-back">返回首頁</router-link>
     </div>
 
     <!-- 結帳表單 -->
@@ -59,6 +58,7 @@
           </div>
         </section>
 
+        <!-- 付款方式 -->
         <section class="form-section">
           <h2><i class="fas fa-credit-card"></i> 付款方式</h2>
           
@@ -83,54 +83,75 @@
           </div>
           <p class="error-message" v-if="errors.paymentMethod">{{ errors.paymentMethod }}</p>
         </section>
+
+        <section class="info-section">
+          <h2><i class="fas fa-info-circle"></i> 訂閱說明</h2>
+          <ul class="info-list">
+            <li><i class="fas fa-check"></i> 訂閱後將於下次配送日自動出貨</li>
+            <li><i class="fas fa-check"></i> 可隨時暫停或取消訂閱</li>
+            <li><i class="fas fa-check"></i> 每次配送前會發送通知</li>
+          </ul>
+        </section>
       </div>
 
-      <!-- 右側：訂單摘要 -->
+      <!-- 右側：訂閱摘要 -->
       <div class="order-summary">
-        <h2>訂單摘要</h2>
+        <h2>訂閱摘要</h2>
         
-        <div class="summary-items">
-          <div class="summary-item" v-for="item in cartStore.cartItems" :key="item.productId">
-            <div class="item-info">
-              <span class="item-name">{{ item.productName }}</span>
-              <span class="item-qty">x {{ item.quantity }}</span>
-            </div>
-            <span class="item-price">NT$ {{ Number(item.subtotal).toLocaleString() }}</span>
-          </div>
+        <div class="product-info">
+          <h3>{{ plan.productName }}</h3>
+          <span class="cycle-badge">{{ plan.cycleText }}</span>
         </div>
 
         <div class="summary-divider"></div>
 
         <div class="summary-row">
-          <span>商品小計</span>
-          <span>NT$ {{ formattedTotalPrice }}</span>
+          <span>原價</span>
+          <span class="original-price">NT$ {{ Number(plan.originalPrice).toLocaleString() }}</span>
         </div>
         
         <div class="summary-row">
-          <span>運費</span>
-          <span>{{ shippingFee === 0 ? '免運費' : `NT$ ${shippingFee}` }}</span>
+          <span>訂閱折扣</span>
+          <span class="discount">{{ formatDiscount(plan.discountRate) }}</span>
+        </div>
+
+        <div class="summary-row">
+          <span>訂閱價</span>
+          <span class="subscription-price">NT$ {{ Number(plan.subscriptionPrice).toLocaleString() }}</span>
+        </div>
+
+        <div class="summary-row">
+          <span>數量</span>
+          <span>{{ quantity }} 件</span>
         </div>
 
         <div class="summary-divider"></div>
+
+        <div class="summary-row">
+          <span>首次配送日</span>
+          <span class="highlight">{{ firstDeliveryDate }}</span>
+        </div>
 
         <div class="summary-row total">
-          <span>總計</span>
-          <span>NT$ {{ formattedGrandTotal }}</span>
+          <span>每期金額</span>
+          <span>NT$ {{ totalPrice.toLocaleString() }}</span>
         </div>
 
         <button 
           class="btn-submit" 
-          @click="submitOrder"
+          @click="submitSubscription"
           :disabled="isSubmitting"
         >
           <span v-if="isSubmitting">
             <i class="fas fa-spinner fa-spin"></i> 處理中...
           </span>
-          <span v-else>確認下單</span>
+          <span v-else>
+            <i class="fas fa-calendar-check"></i> 確認訂閱
+          </span>
         </button>
 
-        <router-link to="/cart" class="btn-back">
-          <i class="fas fa-arrow-left"></i> 返回購物車
+        <router-link :to="`/product/${plan.productId}`" class="btn-back">
+          <i class="fas fa-arrow-left"></i> 返回商品頁
         </router-link>
       </div>
     </div>
@@ -139,20 +160,22 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useCartStore } from '@/stores/cartStore'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import api from '@/utils/axios'
 
+const route = useRoute()
 const router = useRouter()
-const cartStore = useCartStore()
 const authStore = useAuthStore()
 
-// 載入狀態
+// 狀態
 const isLoading = ref(true)
 const isSubmitting = ref(false)
+const plan = ref(null)
+const quantity = ref(1)
+const productId = ref(null)
 
-// 表單資料
+// 表單
 const form = ref({
   recipientName: '',
   recipientPhone: '',
@@ -160,23 +183,42 @@ const form = ref({
   paymentMethod: 'credit_card'
 })
 
-// 錯誤訊息
 const errors = ref({})
+
+// 計算首次配送日
+const firstDeliveryDate = computed(() => {
+  if (!plan.value) return ''
+  const date = new Date()
+  date.setDate(date.getDate() + plan.value.cycleDays)
+  return date.toLocaleDateString('zh-TW')
+})
+
+// 計算每期總金額
+const totalPrice = computed(() => {
+  if (!plan.value) return 0
+  return Number(plan.value.subscriptionPrice) * quantity.value
+})
 
 // 頁面載入
 onMounted(async () => {
-  // 檢查是否登入
+  // 檢查登入
   if (!authStore.isLoggedIn) {
-    router.push({
-      path: '/login',
-      query: { redirect: '/checkout' }
-    })
+    router.push('/login')
     return
   }
 
-  // 載入購物車
-  await cartStore.loadCart()
-  
+  // 取得參數
+  const planId = route.query.planId
+  quantity.value = parseInt(route.query.quantity) || 1
+
+  if (!planId) {
+    isLoading.value = false
+    return
+  }
+
+  // 載入方案資訊
+  await fetchPlanInfo(planId)
+
   // 預填會員資料
   if (authStore.user) {
     form.value.recipientName = authStore.user.name || ''
@@ -185,19 +227,59 @@ onMounted(async () => {
   isLoading.value = false
 })
 
-// 運費計算
-const shippingFee = computed(() => {
-  return cartStore.totalPrice >= 1200 ? 0 : 60
-})
+// 取得方案資訊
+const fetchPlanInfo = async (planId) => {
+  try {
+    // 先取得所有方案，找到對應的
+    const response = await api.get(`/subscriptions/plans/1`) // 需要 productId
+    
+    // 由於我們只有 planId，需要另一種方式
+    // 這裡用一個 workaround：從所有商品的方案中找
+    for (let productId = 1; productId <= 10; productId++) {
+      try {
+        const res = await api.get(`/subscriptions/plans/${productId}`)
+        if (res.success && res.data) {
+          const found = res.data.find(p => p.planId === parseInt(planId))
+          if (found) {
+            plan.value = {
+              ...found,
+              productName: await getProductName(productId)
+            }
+            break
+          }
+        }
+      } catch (e) {
+        continue
+      }
+    }
+  } catch (error) {
+    console.error('載入方案失敗:', error)
+  }
+}
 
-// 格式化金額
-const formattedTotalPrice = computed(() => {
-  return Number(cartStore.totalPrice).toLocaleString()
-})
+// 取得商品名稱
+const getProductName = async (productId) => {
+  try {
+    const response = await api.get(`/products/${productId}`)
+    return response.data?.productName || '未知商品'
+  } catch (e) {
+    return '未知商品'
+  }
+}
 
-const formattedGrandTotal = computed(() => {
-  return Number(cartStore.totalPrice + shippingFee.value).toLocaleString()
-})
+// 格式化折扣顯示
+const formatDiscount = (discountRate) => {
+  if (!discountRate || discountRate === 1) return ''
+  
+  // 0.95 → 95折, 0.90 → 9折, 0.85 → 85折
+  const discount = discountRate * 100
+  
+  if (discount % 10 === 0) {
+    return `${discount / 10} 折`
+  } else {
+    return `${discount.toFixed(0)} 折`
+  }
+}
 
 // 驗證表單
 const validateForm = () => {
@@ -222,38 +304,33 @@ const validateForm = () => {
     isValid = false
   }
 
-  if (!form.value.paymentMethod) {
-    errors.value.paymentMethod = '請選擇付款方式'
-    isValid = false
-  }
-
   return isValid
 }
 
-// 提交訂單
-const submitOrder = async () => {
-  if (!validateForm()) {
-    return
-  }
+// 提交訂閱
+const submitSubscription = async () => {
+  if (!validateForm()) return
 
   isSubmitting.value = true
 
   try {
-    const response = await api.post('/orders', {
+    const response = await api.post('/subscriptions', {
+      planId: plan.value.planId,
+      quantity: quantity.value,
       recipientName: form.value.recipientName,
       recipientPhone: form.value.recipientPhone,
-      recipientAddress: form.value.recipientAddress,
-      paymentMethod: form.value.paymentMethod
+      recipientAddress: form.value.recipientAddress
     })
 
-    // 訂單建立成功，跳轉到完成頁
-    router.push({
-      path: '/order-complete',
-      query: { orderNumber: response.data.orderNumber }
-    })
-  } catch (err) {
-    console.error('建立訂單失敗:', err)
-    alert(err.response?.data?.message || '建立訂單失敗，請稍後再試')
+    if (response.success) {
+      alert(`✓ 訂閱成功！\n下次配送日：${response.data.nextDeliveryDate}`)
+      router.push('/subscriptions')
+    } else {
+      alert(response.message || '訂閱失敗')
+    }
+  } catch (error) {
+    console.error('訂閱失敗:', error)
+    alert(error.response?.data?.message || '訂閱失敗，請稍後再試')
   } finally {
     isSubmitting.value = false
   }
@@ -268,40 +345,24 @@ const submitOrder = async () => {
 }
 
 .page-title {
-  font-size: 25px;
+  font-size: 28px;
   color: #2c3e50;
   margin-bottom: 30px;
   padding-bottom: 15px;
   border-bottom: 2px solid #e0e0e0;
 }
 
-/* 載入中 & 空購物車 */
+/* 載入中 & 錯誤 */
 .loading,
-.empty-cart {
+.error {
   text-align: center;
   padding: 80px 20px;
   color: #7f8c8d;
 }
 
-.loading i,
-.empty-cart i {
-  font-size: 60px;
+.loading i {
+  font-size: 48px;
   margin-bottom: 20px;
-}
-
-.btn-continue {
-  display: inline-block;
-  margin-top: 20px;
-  padding: 12px 30px;
-  background-color: #3A6B5C;
-  color: white;
-  text-decoration: none;
-  border-radius: 8px;
-  transition: background-color 0.3s;
-}
-
-.btn-continue:hover {
-  background-color: #2d5447;
 }
 
 /* 結帳內容 */
@@ -318,14 +379,16 @@ const submitOrder = async () => {
   gap: 30px;
 }
 
-.form-section {
+.form-section,
+.info-section {
   background: white;
   padding: 30px;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-.form-section h2 {
+.form-section h2,
+.info-section h2 {
   font-size: 18px;
   color: #2c3e50;
   margin-bottom: 20px;
@@ -334,7 +397,8 @@ const submitOrder = async () => {
   gap: 10px;
 }
 
-.form-section h2 i {
+.form-section h2 i,
+.info-section h2 i {
   color: #3A6B5C;
 }
 
@@ -419,7 +483,27 @@ const submitOrder = async () => {
   color: #2c3e50;
 }
 
-/* 訂單摘要 */
+/* 訂閱說明 */
+.info-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.info-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  color: #34495e;
+  font-size: 14px;
+}
+
+.info-list li i {
+  color: #3A6B5C;
+}
+
+/* 訂閱摘要 */
 .order-summary {
   background: white;
   padding: 30px;
@@ -436,42 +520,24 @@ const submitOrder = async () => {
   margin-bottom: 20px;
 }
 
-.summary-items {
-  max-height: 300px;
-  overflow-y: auto;
+.product-info {
+  margin-bottom: 15px;
 }
 
-.summary-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.summary-item:last-child {
-  border-bottom: none;
-}
-
-.item-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.item-name {
-  font-size: 14px;
+.product-info h3 {
+  font-size: 18px;
   color: #2c3e50;
+  margin: 0 0 8px 0;
 }
 
-.item-qty {
+.cycle-badge {
+  display: inline-block;
+  background: #f0f7f4;
+  color: #3A6B5C;
+  padding: 5px 12px;
+  border-radius: 15px;
   font-size: 13px;
-  color: #7f8c8d;
-}
-
-.item-price {
-  font-weight: 600;
-  color: #2c3e50;
+  font-weight: 500;
 }
 
 .summary-divider {
@@ -487,29 +553,56 @@ const submitOrder = async () => {
   color: #34495e;
 }
 
+.original-price {
+  text-decoration: line-through;
+  color: #95a5a6;
+}
+
+.discount {
+  color: #e74c3c;
+  font-weight: 500;
+}
+
+.subscription-price {
+  color: #3A6B5C;
+  font-weight: 600;
+}
+
+.highlight {
+  color: #3A6B5C;
+  font-weight: 500;
+}
+
 .summary-row.total {
   font-size: 20px;
   font-weight: bold;
   color: #2c3e50;
   margin-top: 10px;
+  padding-top: 15px;
+  border-top: 2px solid #e0e0e0;
 }
 
 .btn-submit {
   width: 100%;
   padding: 16px;
-  background-color: #3A6B5C;
+  background: linear-gradient(135deg, #3A6B5C, #2d5447);
   color: white;
   border: none;
   border-radius: 8px;
   font-size: 18px;
   font-weight: bold;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: all 0.3s;
   margin-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .btn-submit:hover:not(:disabled) {
-  background-color: #2d5447;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(58, 107, 92, 0.4);
 }
 
 .btn-submit:disabled {

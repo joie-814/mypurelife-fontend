@@ -182,7 +182,7 @@ const goToDetail = () => {
 }
 
 .add-to-cart-btn:hover {
-  background: #2a6626;
+  background: #2d5447;
   transform: scale(1.05);
 }
 

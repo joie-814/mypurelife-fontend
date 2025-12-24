@@ -390,7 +390,7 @@ onUnmounted(() => {
 }
 
 .view-more:hover {
-  color: #3A6B5C;;
+  color: #3A6B5C;
   transform: translateX(5px);
 }
 
