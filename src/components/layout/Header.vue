@@ -44,7 +44,7 @@
             關於我們
             <!-- 下拉選單 -->
             <div class="dropdown" v-show="activeDropdown === 1">
-                <a href="#" class="dropdown-item">品​牌理念​</a>
+                <a href="/about" class="dropdown-item">品​牌理念​</a>
                 <a href="#" class="dropdown-item">店​家​資訊</a>
                 <a href="#" class="dropdown-item">消費者好評</a>
                 <a href="#" class="dropdown-item">隱私權​及​網站​使用​條款</a>

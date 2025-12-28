@@ -13,22 +13,12 @@
 
       <!-- 右側：導覽連結 -->
       <section class="footer-right">
-        <!-- 聯繫我們 -->
-        <div class="footer-column">
-          <h3>聯繫我們</h3>
-          <ul>
-            <li><a href="/customer-service">客服專線</a></li>
-            <li><a href="/customer-inbox">客服信箱</a></li>
-            <li><a href="/customer-hours">客服時間</a></li>
-          </ul>
-        </div>
-
         <!-- 購物說明 -->
         <div class="footer-column">
           <h3>購物說明</h3>
           <ul>
-            <li><a href="/shipping">配送方式</a></li>
-            <li><a href="/payment">付款方式</a></li>
+            <li><a href="#">配送方式</a></li>
+            <li><a href="/payment-info">付款方式</a></li>
           </ul>
         </div>
 
@@ -97,7 +87,7 @@
 /* 右側：導覽連結 */
 .footer-right {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 2rem;
 }
 
@@ -159,7 +149,7 @@
   }
 
   .footer-right {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 

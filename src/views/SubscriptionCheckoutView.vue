@@ -125,11 +125,19 @@
           <span>{{ quantity }} 件</span>
         </div>
 
-        <div class="summary-divider"></div>
-
-        <div class="summary-row">
-          <span>首次配送日</span>
-          <span class="highlight">{{ firstDeliveryDate }}</span>
+        <div class="delivery-info">
+          <div class="delivery-item">
+            <span class="label">首次配送：</span>
+            <span class="value highlight">{{ firstDeliveryDate }}（立即出貨）</span>
+          </div>
+          <div class="delivery-item">
+            <span class="label">下次配送：</span>
+            <span class="value">{{ nextDeliveryDate }}</span>
+          </div>
+          <div class="delivery-item">
+            <span class="label">配送週期：</span>
+            <span class="value">每 {{ plan?.cycleDays }} 天</span>
+          </div>
         </div>
 
         <div class="summary-row total">
@@ -185,8 +193,13 @@ const form = ref({
 
 const errors = ref({})
 
-// 計算首次配送日
+// 計算首次配送日（立即出貨）
 const firstDeliveryDate = computed(() => {
+  return new Date().toLocaleDateString('zh-TW')  // 今天
+})
+
+// 計算下次配送日（第二次）
+const nextDeliveryDate = computed(() => {
   if (!plan.value) return ''
   const date = new Date()
   date.setDate(date.getDate() + plan.value.cycleDays)
@@ -610,6 +623,38 @@ const submitSubscription = async () => {
 
 .btn-back:hover {
   color: #3A6B5C;
+}
+
+.delivery-info {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.delivery-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.delivery-item:last-child {
+  border-bottom: none;
+}
+
+.delivery-item .label {
+  color: #666;
+}
+
+.delivery-item .value {
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.delivery-item .value.highlight {
+  color: #3A6B5C;
+  font-weight: 600;
 }
 
 /* 響應式 */

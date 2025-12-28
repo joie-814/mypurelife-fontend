@@ -18,19 +18,21 @@ import AdminProducts from '@/views/admin/AdminProducts.vue'
 const routes = [
   // ===== 前台路由 =====
   { 
-    path: '/', 
-    component: () => import('@/layouts/MainLayout.vue'), // 前台 Layout（有 Header/Footer）
+    path: '/', component: () => import('@/layouts/MainLayout.vue'), // 前台 Layout（有 Header/Footer）
     children: [
       { path: '', name: 'Home', component: Home },
       { path: 'login', name: 'Login', component: Login },
       { path: 'cart', name: 'CartView', component: () => import('@/views/CartView.vue') },
       { path: 'product/:id', name: 'ProductDetailView', component: () => import('@/views/ProductDetailView.vue') },
+      { path: 'about', name: 'About', component: () => import('@/views/AboutView.vue'), meta: { title: '品牌理念 - PureLife' }},
+      { path: 'payment-info', name:'paymentInfo', component:() =>  import('@/views/PaymentInfoView.vue'), meta: { title: '付款方式 - PureLife' }},
+      { path: 'faq', name:'FAQ', component:() =>  import('@/views/FaqView.vue'), meta: { title: '常見問題 - PureLife' }},
       // ========== 新增：需要登入的頁面 ==========
       { path: 'checkout', name: 'Checkout', component: () => import('@/views/CheckoutView.vue') },
       { path: 'order-complete', name: 'OrderComplete', component: () => import('@/views/OrderCompleteView.vue') },
       { path: 'orders', name: 'Orders', component: () => import('@/views/OrderListView.vue') },
       { path: 'orders/:id', name: 'OrderDetail', component: () => import('@/views/OrderDetailView.vue') },
-      { path: 'member', name: 'MemberCenter', component: () => import('../views/MemberCenter.vue') },
+      { path: 'member', name: 'MemberCenter', component: () => import('@/views/MemberCenter.vue') },
       { path: 'subscriptions', name: 'Subscriptions', component: () => import('../views/SubscriptionListView.vue') },
       { path: 'subscription-checkout', name: 'SubscriptionCheckout', component: () => import('@/views/SubscriptionCheckoutView.vue') },
       { path: 'subscription-complete', name: 'SubscriptionComplete', component: () => import('@/views/SubscriptionCompleteView.vue') }
