@@ -44,38 +44,39 @@
                 </div>
               </td>
               <td class="product-name">{{ product.productName }}</td>
+              <td>{{ product.category }}</td>
               <td>
-              <div class="price-cell">
-                <span class="original-price" :class="{ 'has-promo': product.promotionPrice }">
-                  NT$ {{ Number(product.price).toLocaleString() }}
-                </span>
-                <span v-if="product.promotionPrice" class="promo-price">
-                  NT$ {{ Number(product.promotionPrice).toLocaleString() }}
-                </span>
-              </div>
-            </td>
-            <td>{{ product.stockQuantity }}</td>
-            <td>
-              <select 
-                class="status-select" 
-                :class="getStatusClass(product.productStatus)"
-                v-model="product.productStatus"
-                @change="updateStatus(product)"
-              >
-                <option value="available">上架中</option>
-                <option value="unavailable">已下架</option>
-              </select>
-            </td>
-            <td>
-              <div class="actions">
-                <button class="btn-edit" @click="openEditModal(product)">
-                  <i class="fas fa-edit"></i>
-                </button>
-                <button class="btn-delete" @click="deleteProduct(product)">
-                  <i class="fas fa-trash"></i>
-                </button>
-              </div>
-            </td>
+                <div class="price-cell">
+                  <span class="original-price" :class="{ 'has-promo': product.promotionPrice }">
+                    NT$ {{ Number(product.price).toLocaleString() }}
+                  </span>
+                  <span v-if="product.promotionPrice" class="promo-price">
+                    NT$ {{ Number(product.promotionPrice).toLocaleString() }}
+                  </span>
+                </div>
+              </td>
+              <td>{{ product.stockQuantity }}</td>
+              <td>
+                <select 
+                  class="status-select" 
+                  :class="getStatusClass(product.productStatus)"
+                  v-model="product.productStatus"
+                  @change="updateStatus(product)"
+                >
+                  <option value="available">上架中</option>
+                  <option value="unavailable">已下架</option>
+                </select>
+              </td>
+              <td>
+                <div class="actions">
+                  <button class="btn-edit" @click="openEditModal(product)">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="btn-delete" @click="deleteProduct(product)">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -190,7 +191,7 @@
               </select>
             </div>
           </div>
-                    <!-- 定期購設定區塊 -->
+          <!-- 定期購設定區塊 -->
           <div class="subscription-section">
             <div class="section-header">
               <label class="toggle-label">
