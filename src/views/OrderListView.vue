@@ -26,8 +26,11 @@
         <div class="order-header">
           <div class="order-info">
             <span class="order-number">{{ order.orderNumber }}</span>
-            <span class="order-date">{{ formatDate(order.orderTime) }}</span>
+            <span v-if="order.orderType === 'subscription'" class="tag-subscription">
+              定期購
+            </span>
           </div>
+          <span class="order-date">{{ formatDate(order.orderTime) }}</span>
           <div class="order-status" :class="getStatusClass(order.orderStatus)">
             {{ getStatusText(order.orderStatus) }}
           </div>
@@ -236,6 +239,14 @@ const getPaymentMethodText = (method) => {
   font-weight: 600;
   color: #2c3e50;
   font-size: 16px;
+}
+
+.tag-subscription {
+  background-color: #3A6B5C;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
 }
 
 .order-date {
